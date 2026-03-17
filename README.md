@@ -22,6 +22,34 @@ The model's internal validation confirms it is picking up the right signal: arti
 
 ![Net stance by state](figures/stance_choropleth.png)
 
+## Discussion
+
+### Silver mining and pro-silver sentiment
+
+The strongest pro-silver newspaper stances come from the country's major silver-producing states. Nevada (the Comstock Lode), Montana (Butte, Phillipsburg), Colorado (Leadville), Idaho (Coeur d'Alene), Arizona, and New Mexico were all centers of silver mining in the 1890s. In the data, these are almost exactly the most pro-silver states: New Mexico (-0.44), Montana (-0.33), Nevada (-0.32), Arizona (-0.31), Colorado (-0.27), Idaho (-0.18). The correlation between silver production and newspaper stance is nearly monotonic. For these states, the free coinage of silver was not an abstract monetary philosophy -- it was directly tied to the local economy. When Congress repealed the Sherman Silver Purchase Act in 1893, Colorado's mining industry collapsed and its economy was devastated.
+
+### The South: pro-silver, but not uniformly
+
+Southern newspapers lean pro-silver on average (net -0.14), consistent with the region's agrarian-populist coalition that saw currency inflation as relief from crushing debt. However, the South shows a notable internal gradient. Border states with closer ties to Northeastern financial networks are nearly neutral: Maryland (-0.02), Delaware (-0.06). The deeper South leans more strongly: Louisiana (-0.24), North Carolina (-0.22), Kentucky (-0.19), Arkansas (-0.18). This gradient is consistent with the geographic and economic logic of the silver movement: the further a state's economy was from Northeastern banking interests and the more it depended on agriculture, the stronger its pro-silver signal.
+
+### The Northeast: quiet on gold
+
+The Northeast shows the weakest stance signal of any region (net -0.01), which is consistent with its historical alignment as the center of gold-standard support but may also understate pro-gold sentiment for two reasons:
+
+1. **Coverage gaps.** The dataset contains only 25 Northeastern newspapers (vs. 96 Midwest, 98 South, 70 West). Several key states are missing entirely, including Pennsylvania, Massachusetts, and Virginia. The financial centers most associated with gold-standard advocacy (New York, Boston, Philadelphia) are either absent or very thinly represented. New York has only three newspapers in the dataset.
+
+2. **Status-quo framing.** The model's pro-gold detection asymmetry (2.7x weaker than pro-silver) may disproportionately affect Northeastern coverage. Gold-standard defenders often relied on implicit framing -- "sound money," "fiscal responsibility" -- rather than overt advocacy. A newspaper that covered the silver movement dismissively, treating the gold standard as the obvious default, would register as nearly neutral under the model's NLI hypotheses. The pro-silver movement was insurgent, and insurgent rhetoric is louder and more lexically distinctive. This asymmetry likely compresses the measured pro-gold signal in precisely the region where it should be strongest.
+
+### Why silver lost despite its popularity
+
+The newspaper data reveals broad pro-silver sentiment across most of the country, which raises a natural question: why did the United States maintain the gold standard?
+
+The 1896 presidential election provides the clearest answer. William Jennings Bryan won the South and West decisively on a free-silver platform, but William McKinley carried the more populous, industrialized states of the Northeast and upper Midwest (Ohio, Indiana, Illinois, Wisconsin, Minnesota, Iowa). Bryan won more states geographically, but fewer electoral votes. The electoral college math favored the regions where gold-standard sentiment was concentrated.
+
+Beyond the election, the financial establishment held structural advantages. Eastern banks, railroads, and bondholders had enormous influence over both parties' institutional leadership. Gold Democrats in the Northeast (led by President Grover Cleveland) had spent much of the early 1890s actively fighting silver within their own party -- the repeal of the Sherman Silver Purchase Act in 1893 happened under a Democratic president. Internationally, the gold standard was the norm among major trading partners, especially Britain, and unilateral departure carried real risks for trade and investment.
+
+The newspaper map shows where popular sentiment was concentrated. It does not show where institutional and electoral power was concentrated. That gap between the geographic breadth of pro-silver support and the political power of the pro-gold minority is itself a notable feature of the 1890s monetary debate, and one that echoes in other historical cases where insurgent movements with broad geographic support were outweighed by concentrated institutional power.
+
 ## Method
 
 1. **Data acquisition**: Download all articles from the [American Stories](https://huggingface.co/datasets/dell-research-harvard/AmericanStories) dataset (1890-1896) and filter for articles about the monetary standard debate using 27 domain-specific keywords.
