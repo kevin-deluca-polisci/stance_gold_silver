@@ -22,8 +22,6 @@ The model's internal validation confirms it is picking up the right signal: arti
 
 ![Net stance by state](figures/stance_choropleth.png)
 
-An [interactive version of the map](figures/stance_choropleth.html) with hover details is also available in the `figures/` directory.
-
 ## Method
 
 1. **Data acquisition**: Download all articles from the [American Stories](https://huggingface.co/datasets/dell-research-harvard/AmericanStories) dataset (1890-1896) and filter for articles about the monetary standard debate using 27 domain-specific keywords.
