@@ -6,12 +6,28 @@ This project uses zero-shot NLI stance detection to measure newspaper-level posi
 
 ## Background
 
-In the 1890s, the U.S. experienced a major political conflict over monetary policy -- the "Battle of the Standards" -- that split along regional rather than partisan lines. Farmers and miners in the South and West supported the free coinage of silver (to inflate prices and ease debts), while the financial community in the Northeast favored maintaining the gold standard (for currency stability). This project attempts to detect these stances in newspaper coverage using NLP methods. The figure above shows the volume of monetary debate coverage across 212 newspapers, with clear spikes around the Panic of 1893, the repeal of the Sherman Silver Purchase Act, and Bryan's 1896 campaign.
+In the 1890s, the U.S. experienced a major political conflict over monetary policy -- the "Battle of the Standards" -- that split along regional rather than partisan lines. Farmers and miners in the South and West supported the free coinage of silver (to inflate prices and ease debts), while the financial community in the Northeast favored maintaining the gold standard (for currency stability). This project attempts to detect these stances in newspaper coverage using NLP methods. The figure above shows the volume of monetary debate coverage across nearly 300 newspapers, with clear spikes around the Panic of 1893, the repeal of the Sherman Silver Purchase Act, and Bryan's 1896 campaign.
+
+## Key Results
+
+We classified 56,355 articles from 298 newspapers across 37 states and found clear geographic patterns consistent with the historical record:
+
+- **Northeast** newspapers show the weakest pro-silver signal (net stance -0.01), with Maine and New Jersey leaning slightly pro-gold. Ohio and Iowa also tilt pro-gold, though each is represented by only one newspaper.
+- **South** and **Midwest** newspapers lean moderately pro-silver (net -0.14 and -0.15), reflecting agrarian interests aligned with currency inflation.
+- **Western** newspapers are the most strongly pro-silver (net -0.29), led by New Mexico (-0.44), Montana (-0.33), Nevada (-0.32), and Arizona (-0.30) -- mining states with direct economic stakes in silver coinage.
+
+The model's internal validation confirms it is picking up the right signal: articles containing explicitly pro-silver terms (e.g., "free coinage," "silverites") score 2.7x higher on the pro-silver classifier than articles with pro-gold terms (e.g., "sound money," "gold standard").
+
+![Stance by region](figures/regional_boxplots.png)
+
+![Net stance by state](figures/stance_choropleth.png)
+
+An [interactive version of the map](figures/stance_choropleth.html) with hover details is also available in the `figures/` directory.
 
 ## Method
 
-1. **Data acquisition**: Stream articles from the [American Stories](https://huggingface.co/datasets/dell-research-harvard/AmericanStories) dataset (1890-1896) and filter for articles about the monetary standard debate using domain-specific keywords.
-2. **Stance detection**: Apply the [Political DEBATE](https://huggingface.co/mlburnham/Political_DEBATE_large_v1.0) zero-shot NLI model to classify each article as pro-gold, pro-silver, both, or neither.
+1. **Data acquisition**: Download all articles from the [American Stories](https://huggingface.co/datasets/dell-research-harvard/AmericanStories) dataset (1890-1896) and filter for articles about the monetary standard debate using 27 domain-specific keywords.
+2. **Stance detection**: Apply the [Political DEBATE](https://huggingface.co/mlburnham/Political_DEBATE_large_v1.0) zero-shot NLI model to classify each article's stance toward the gold standard and toward free silver independently.
 3. **Aggregation**: Roll up article-level stance scores to the newspaper level, then examine geographic patterns using Library of Congress metadata.
 
 ## Project Structure
@@ -19,12 +35,12 @@ In the 1890s, the U.S. experienced a major political conflict over monetary poli
 ```
 newspaper_stances/
 ├── notebooks/
-│   ├── 01_data_acquisition.ipynb       # Stream & filter American Stories
+│   ├── 01_data_acquisition.ipynb       # Download & filter American Stories
 │   ├── 02_explore_filtered_data.ipynb  # EDA on gold/silver articles
 │   ├── 03_stance_detection.ipynb       # Apply Political DEBATE model
 │   └── 04_aggregation_analysis.ipynb   # Newspaper-level results + geo
 ├── src/
-│   ├── data_utils.py                   # Streaming/filtering helpers
+│   ├── data_utils.py                   # Download/filtering helpers
 │   ├── stance_model.py                 # Political DEBATE wrapper
 │   └── geo_lookup.py                   # LCCN to geography crosswalk
 ├── data/
@@ -37,8 +53,8 @@ newspaper_stances/
 
 ## Data Sources
 
-- **American Stories**: Dell Research Harvard, hosted on HuggingFace. A large-scale structured text dataset of historical U.S. newspapers derived from Library of Congress scans.
-- **Political DEBATE**: Burnham et al. (2025). A DeBERTa-based NLI model trained on political text for zero-shot and few-shot classification.
+- **American Stories**: Dell et al. (2023), hosted on HuggingFace. A large-scale structured text dataset of historical U.S. newspapers derived from Library of Congress scans.
+- **Political DEBATE**: Burnham et al. (2025). A RoBERTa-large NLI model trained on political text for zero-shot and few-shot classification.
 - **Library of Congress**: LCCN metadata API for newspaper geographic information.
 
 ## Usage
@@ -51,13 +67,9 @@ Then run notebooks in order: `01_data_acquisition.ipynb` -> `02_explore_filtered
 
 ## Known Limitations
 
-This is an early-stage research pipeline. Several limitations should be kept in mind when interpreting results:
-
-- **Northeast undersampled.** Only 11 newspapers across 4 Northeastern states made it through the keyword filter, compared to 41 in the West. The financial-center voices most likely to champion the gold standard are underrepresented, which may partly explain the overall pro-silver skew in the data.
-- **Low-count states.** Six states (Maine, Mississippi, Idaho, Nebraska, Oregon, Nevada) are represented by a single newspaper each. Their stance estimates carry high variance and should be treated cautiously.
-- **Geographic coverage gaps.** Roughly 81 of 213 LCCNs were resolved via name extraction rather than the Library of Congress API, and some states with active monetary-debate participation (e.g., Ohio, Pennsylvania, Texas) are missing entirely.
-- **Pro-gold asymmetry.** The model detects pro-silver rhetoric more readily than pro-gold (mean 0.27 vs. 0.11). Gold standard defenders often used implicit, status-quo framing that may not trigger the zero-shot hypothesis "This text supports the gold standard" as strongly. This is a known challenge with NLI-based stance detection on establishment positions.
-- **Flat temporal signal.** Annual averages show little variation from 1890 to 1896, including around the Panic of 1893. This could reflect genuinely entrenched positions, or it could mean annual granularity is too coarse to capture month-level shocks.
+- **Pro-gold asymmetry.** The model detects pro-silver rhetoric more readily than pro-gold (mean score 0.27 vs. 0.13). Gold standard defenders often used implicit, status-quo framing that may not trigger the zero-shot hypothesis "This text supports the gold standard" as strongly. This is a known challenge with NLI-based stance detection on establishment positions.
+- **Low-count states.** Six states (Ohio, Iowa, Oregon, Idaho, Nevada, Hawaii) are represented by a single newspaper each. Their stance estimates carry high variance and should be treated cautiously.
+- **Missing states.** Sixteen states and territories lack any newspaper coverage in the filtered dataset, including several historically significant ones: Pennsylvania, Massachusetts, Virginia, Texas, Tennessee, and South Carolina. The Northeast remains underrepresented overall (25 newspapers vs. 96 Midwest, 98 South, 70 West), meaning the region most associated with pro-gold sentiment has the thinnest coverage.
 - **OCR noise.** The American Stories data is derived from digitized newspaper scans. OCR errors in 1890s print may cause some relevant articles to be missed by keyword filtering or misclassified by the stance model.
 
 ## References
