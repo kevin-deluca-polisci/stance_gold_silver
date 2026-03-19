@@ -37,5 +37,8 @@ literature/
 # Large generated figures
 figures/*.html
 
+# Voteview cached data
+data/voteview/*.csv
+
 # HuggingFace cache
 .cache/

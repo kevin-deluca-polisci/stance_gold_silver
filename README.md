@@ -48,6 +48,30 @@ The regional pattern holds under the residual measure, but is somewhat attenuate
 
 ![Residual net stance by state](figures/residual_stance_choropleth.png)
 
+## Roll-Call Vote Validation: Do Newspaper Stances Predict Legislative Behavior?
+
+The strongest test of whether the newspaper-detected stances are meaningful is whether they predict how politicians actually voted. We matched entities detected in newspaper articles to members of the 51st-54th Congresses (1889-1897) using [Voteview](https://voteview.com) data, then compared their newspaper-detected stance to their voting record on monetary policy legislation.
+
+### Identifying monetary votes and coding bill direction
+
+We identified 119 monetary-policy roll-call votes across the four congresses by searching vote descriptions for keywords related to silver, gold, coinage, and relevant legislation (Sherman Act, Bland-Allison, etc.). Because "Yea" means different things on different bills (Yea on the Sherman repeal is pro-gold, Yea on a free coinage bill is pro-silver), we coded each vote's direction using two methods: keyword-based coding from bill descriptions (e.g., "repeal" + "silver" = Yea is pro-gold), and anchor-politician validation, where we used the actual votes of known pro-silver figures (Bryan, Bland, Teller, Stewart) and pro-gold figures (Sherman, Aldrich, Reed) to infer the direction of ambiguous votes. This yielded 89 direction-coded rollcalls (72 where Yea = pro-silver, 17 where Yea = pro-gold, 30 unclear and excluded).
+
+### Entity matching
+
+Beyond our 18 known politicians, we matched detected entity names from newspaper articles to Voteview's full member list using last-name matching with first-name disambiguation. This produced 10,984 entity-to-member matches covering 780 unique members of Congress, substantially expanding the analysis beyond the known-politician lookup table.
+
+### Results
+
+For the 10 known politicians who served in Congress during this period, the correlation between newspaper-detected stance and pro-silver vote share is **r = -0.856** (N = 10). Politicians portrayed as more pro-silver in newspaper coverage voted more consistently for silver legislation, and vice versa. The top of the table (Aldrich, McKinley, Reed) voted pro-gold 67-80% of the time and have near-zero or slightly positive newspaper stances. The bottom (Bryan, Bland, Teller, Stewart) voted pro-silver 59-82% of the time and have strongly negative newspaper stances.
+
+For the broader entity-matched sample, the correlation is weaker (r = -0.19, N = 1,132) due to noisy matches from OCR-garbled names and low-article-count entities. Filtering to entities with 10+ article mentions roughly doubles the correlation, confirming that the noise comes from low-N matches rather than a failure of the underlying signal. The relationship between newspaper-detected stance and legislative voting is robust among well-identified politicians.
+
+![Newspaper stance vs. roll-call voting](figures/stance_vs_rollcall_robust.png)
+
+### Implications
+
+These results suggest that how politicians are portrayed in newspaper coverage, as measured by a zero-shot NLP model with no historical training, carries real predictive information about their legislative behavior. This opens the door to using digitized newspaper archives as a source of legislator-level ideal point estimates for periods and polities where roll-call vote data is unavailable or incomplete.
+
 ## Discussion
 
 ### Silver mining and pro-silver sentiment
@@ -82,6 +106,7 @@ The newspaper map shows where popular sentiment was concentrated. It does not sh
 2. **Stance detection**: Apply the [Political DEBATE](https://huggingface.co/mlburnham/Political_DEBATE_large_v1.0) zero-shot NLI model to classify each article's stance toward the gold standard and toward free silver independently.
 3. **Aggregation**: Roll up article-level stance scores to the newspaper level, then examine geographic patterns using Library of Congress metadata.
 4. **Entity-level analysis** (notebook 05): Use nltk sentence splitting and regex-based entity matching to identify people mentioned within articles, disambiguate against a table of ~18 known 1890s political figures, and run stance detection at the entity level using person-specific hypotheses (e.g., "According to this text, Bryan supports free silver"). Sentences mentioning people are separated from residual text, enabling both person-level stance measurement and a cleaner estimate of newspaper editorial slant net of attributed speech.
+5. **Roll-call validation** (notebook 06): Download [Voteview](https://voteview.com) roll-call data for the 51st-54th Congresses (1889-1897), identify monetary policy votes, code bill direction (keyword-based + anchor-politician validation), match detected entities to Voteview members, and compare newspaper-detected stances to actual pro-silver vote shares.
 
 ## Project Structure
 
@@ -92,7 +117,8 @@ newspaper_stances/
 │   ├── 02_explore_filtered_data.ipynb  # EDA on gold/silver articles
 │   ├── 03_stance_detection.ipynb       # Apply Political DEBATE model
 │   ├── 04_aggregation_analysis.ipynb   # Newspaper-level results + geo
-│   └── 05_entity_stance_analysis.ipynb # Entity-level stance detection
+│   ├── 05_entity_stance_analysis.ipynb # Entity-level stance detection
+│   └── 06_rollcall_validation.ipynb   # Validate stances against roll-call votes
 ├── src/
 │   ├── data_utils.py                   # Download/filtering helpers
 │   ├── stance_model.py                 # Political DEBATE wrapper
@@ -101,7 +127,8 @@ newspaper_stances/
 ├── data/
 │   ├── american_stories/               # Filtered articles (parquet)
 │   ├── lccn_metadata/                  # Geographic crosswalk data
-│   └── results/                        # Stance detection outputs
+│   ├── results/                        # Stance detection outputs
+│   └── voteview/                       # Cached Voteview roll-call data
 ├── requirements.txt
 └── README.md
 ```
@@ -111,6 +138,7 @@ newspaper_stances/
 - **American Stories**: Dell et al. (2023), hosted on HuggingFace. A large-scale structured text dataset of historical U.S. newspapers derived from Library of Congress scans.
 - **Political DEBATE**: Burnham et al. (2025). A RoBERTa-large NLI model trained on political text for zero-shot and few-shot classification.
 - **Library of Congress**: LCCN metadata API for newspaper geographic information.
+- **Voteview**: Lewis et al. (2025). Congressional roll-call voting data, 1st-118th Congresses. https://voteview.com
 
 ## Usage
 
@@ -118,7 +146,7 @@ newspaper_stances/
 pip install -r requirements.txt
 ```
 
-Then run notebooks in order: `01_data_acquisition.ipynb` -> `02_explore_filtered_data.ipynb` -> `03_stance_detection.ipynb` -> `04_aggregation_analysis.ipynb` -> `05_entity_stance_analysis.ipynb`.
+Then run notebooks in order: `01_data_acquisition.ipynb` -> `02_explore_filtered_data.ipynb` -> `03_stance_detection.ipynb` -> `04_aggregation_analysis.ipynb` -> `05_entity_stance_analysis.ipynb` -> `06_rollcall_validation.ipynb`.
 
 Notebook 05 includes a checkpoint system: the entity-level and residual stance detection cells auto-save results to `data/results/` when they complete. A load-from-checkpoint cell before section 6 lets you skip the expensive detection steps on subsequent runs.
 
@@ -128,6 +156,7 @@ Notebook 05 includes a checkpoint system: the entity-level and residual stance d
 - **Low-count states.** Six states (Ohio, Iowa, Oregon, Idaho, Nevada, Hawaii) are represented by a single newspaper each. Their stance estimates carry high variance and should be treated cautiously.
 - **Missing states.** Sixteen states and territories lack any newspaper coverage in the filtered dataset, including several historically significant ones: Pennsylvania, Massachusetts, Virginia, Texas, Tennessee, and South Carolina. The Northeast remains underrepresented overall (25 newspapers vs. 96 Midwest, 98 South, 70 West), meaning the region most associated with pro-gold sentiment has the thinnest coverage.
 - **OCR noise.** The American Stories data is derived from digitized newspaper scans. OCR errors in 1890s print may cause some relevant articles to be missed by keyword filtering or misclassified by the stance model.
+- **Entity matching noise.** The regex-based entity matching produces false positives, particularly for common surnames and OCR-garbled names (e.g., "Rnjamin Robinson" matching to a Voteview member). The roll-call correlation for the full entity-matched sample (r = -0.19) is much weaker than for known politicians (r = -0.86), largely due to these noisy matches. Filtering to entities with 10+ article mentions substantially improves the signal.
 
 ## References
 
