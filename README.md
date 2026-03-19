@@ -22,6 +22,32 @@ The model's internal validation confirms it is picking up the right signal: arti
 
 ![Net stance by state](figures/stance_choropleth.png)
 
+## Entity-Level Analysis: Separating Newspaper Slant from Reported Speech
+
+An article classified as "pro-silver" might reflect the newspaper's own editorial position, or it might simply be reporting on a pro-silver politician like Bryan. To disentangle these, we split each article into sentences, identify person mentions (using a lookup table of 18 key 1890s political figures plus a general name-detection heuristic), and run stance detection separately on person-attributed sentences and the residual text.
+
+### Person-level stance detection
+
+For sentences mentioning a known politician, we use person-specific hypotheses (e.g., "According to this text, Bryan supports the free coinage of silver") to measure how each figure is *portrayed* in newspaper coverage. The model correctly classifies 14 of 18 known politicians by their historical stance (77.8% accuracy for figures with 5+ article mentions). The top pro-gold figures by detected stance are Grover Cleveland (+0.012), Nelson Aldrich (+0.007), and William McKinley (+0.004). The top pro-silver figures are Richard P. Bland (-0.233), William Jennings Bryan (-0.223), and Henry Teller (-0.187).
+
+The four misclassified politicians (Marcus Hanna, Thomas Reed, David Hill, John Sherman) are all pro-gold figures whose detected stances are slightly negative. This is consistent with the model's known pro-gold detection asymmetry: gold-standard defenders used less overt language, and the model's person-specific hypotheses inherit that same bias.
+
+![Detected politician stances](figures/politician_stances.png)
+
+### Residual newspaper stance
+
+After removing person-attributed sentences, the remaining "residual" text captures the newspaper's own editorial voice. Comparing original and residual article-level stances across 54,024 articles:
+
+- The two measures correlate at r = 0.628, meaning they are related but meaningfully different.
+- The residual stance shifts +0.044 toward gold on average, suggesting that some of the measured pro-silver signal in the original scores came from newspapers *reporting on* pro-silver politicians rather than *endorsing* silver themselves.
+- At the newspaper level (300 newspapers), the correlation is higher (r = 0.813) and the shift is +0.033.
+
+The regional pattern holds under the residual measure, but is somewhat attenuated, consistent with the interpretation that the original scores conflated editorial slant with reported speech.
+
+![Residual stance by region](figures/residual_regional_boxplots.png)
+
+![Residual net stance by state](figures/residual_stance_choropleth.png)
+
 ## Discussion
 
 ### Silver mining and pro-silver sentiment
@@ -55,6 +81,7 @@ The newspaper map shows where popular sentiment was concentrated. It does not sh
 1. **Data acquisition**: Download all articles from the [American Stories](https://huggingface.co/datasets/dell-research-harvard/AmericanStories) dataset (1890-1896) and filter for articles about the monetary standard debate using 27 domain-specific keywords.
 2. **Stance detection**: Apply the [Political DEBATE](https://huggingface.co/mlburnham/Political_DEBATE_large_v1.0) zero-shot NLI model to classify each article's stance toward the gold standard and toward free silver independently.
 3. **Aggregation**: Roll up article-level stance scores to the newspaper level, then examine geographic patterns using Library of Congress metadata.
+4. **Entity-level analysis** (notebook 05): Use nltk sentence splitting and regex-based entity matching to identify people mentioned within articles, disambiguate against a table of ~18 known 1890s political figures, and run stance detection at the entity level using person-specific hypotheses (e.g., "According to this text, Bryan supports free silver"). Sentences mentioning people are separated from residual text, enabling both person-level stance measurement and a cleaner estimate of newspaper editorial slant net of attributed speech.
 
 ## Project Structure
 
@@ -64,11 +91,13 @@ newspaper_stances/
 │   ├── 01_data_acquisition.ipynb       # Download & filter American Stories
 │   ├── 02_explore_filtered_data.ipynb  # EDA on gold/silver articles
 │   ├── 03_stance_detection.ipynb       # Apply Political DEBATE model
-│   └── 04_aggregation_analysis.ipynb   # Newspaper-level results + geo
+│   ├── 04_aggregation_analysis.ipynb   # Newspaper-level results + geo
+│   └── 05_entity_stance_analysis.ipynb # Entity-level stance detection
 ├── src/
 │   ├── data_utils.py                   # Download/filtering helpers
 │   ├── stance_model.py                 # Political DEBATE wrapper
-│   └── geo_lookup.py                   # LCCN to geography crosswalk
+│   ├── geo_lookup.py                   # LCCN to geography crosswalk
+│   └── entity_extraction.py            # NER + politician disambiguation
 ├── data/
 │   ├── american_stories/               # Filtered articles (parquet)
 │   ├── lccn_metadata/                  # Geographic crosswalk data
@@ -89,7 +118,9 @@ newspaper_stances/
 pip install -r requirements.txt
 ```
 
-Then run notebooks in order: `01_data_acquisition.ipynb` -> `02_explore_filtered_data.ipynb` -> `03_stance_detection.ipynb` -> `04_aggregation_analysis.ipynb`.
+Then run notebooks in order: `01_data_acquisition.ipynb` -> `02_explore_filtered_data.ipynb` -> `03_stance_detection.ipynb` -> `04_aggregation_analysis.ipynb` -> `05_entity_stance_analysis.ipynb`.
+
+Notebook 05 includes a checkpoint system: the entity-level and residual stance detection cells auto-save results to `data/results/` when they complete. A load-from-checkpoint cell before section 6 lets you skip the expensive detection steps on subsequent runs.
 
 ## Known Limitations
 
