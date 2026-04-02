@@ -42,3 +42,4 @@ data/voteview/*.csv
 
 # HuggingFace cache
 .cache/
+paper_outline.md
